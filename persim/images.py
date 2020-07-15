@@ -17,7 +17,7 @@ class PersImage(TransformerMixin):
 
     Parameters
     -----------
-
+    extendend_specs : True/False flag indicated whether to use the standart persim specs or the extended version.
     pixels : pair of ints like (int, int)
         Tuple representing number of pixels in return image along x and y axis.
     spread : float
@@ -28,7 +28,11 @@ class PersImage(TransformerMixin):
         
             {
                 "maxBD": float,
-                "minBD": float
+                "minBD": float,
+                "maxB": float, #default: maximum of all birth values
+                "minB": float, #default: minimum of all birth values
+                "maxL": float, #default: maximum of all lifetime values
+                "minL": float  #default: minimum of all lifetime values
             }
 
     kernel_type : string or ...
@@ -54,6 +58,7 @@ class PersImage(TransformerMixin):
         kernel_type="gaussian",
         weighting_type="linear",
         verbose=True,
+        extendend_specs=True
     ):
 
         self.specs = specs
@@ -61,11 +66,12 @@ class PersImage(TransformerMixin):
         self.weighting_type = weighting_type
         self.spread = spread
         self.nx, self.ny = pixels
+        self.extendend_specs = extendend_specs
 
         if verbose:
             print(
-                'PersImage(pixels={}, spread={}, specs={}, kernel_type="{}", weighting_type="{}")'.format(
-                    pixels, spread, specs, kernel_type, weighting_type
+                'PersImage(pixels={}, spread={}, specs={}, kernel_type="{}", weighting_type="{}", extendend_specs={})'.format(
+                    pixels, spread, specs, kernel_type, weighting_type, extendend_specs
                 )
             )
 
@@ -93,13 +99,17 @@ class PersImage(TransformerMixin):
 
         dgs = [np.array(diagram, np.float64) for diagram in diagrams]
         landscapes = [PersImage.to_landscape(dg) for dg in dgs]
-
+        
         if not self.specs:
             self.specs = {
-                "maxBD": np.max([np.max(np.vstack((landscape, np.zeros((1, 2))))) 
+                "maxBD": np.max([np.max(np.vstack((landscape, np.zeros((1, 2)))))
                                  for landscape in landscapes] + [0]),
-                "minBD": np.min([np.min(np.vstack((landscape, np.zeros((1, 2))))) 
+                "minBD": np.min([np.min(np.vstack((landscape, np.zeros((1, 2)))))
                                  for landscape in landscapes] + [0]),
+                "maxB": np.max([np.max(landscape[:, 0]) for landscape in landscapes] + [0]),
+                "minB": np.min([np.min(landscape[:, 0]) for landscape in landscapes] + [0]),
+                "maxL": np.max([np.max(landscape[:, 1]) for landscape in landscapes] + [0]),
+                "minL": np.min([np.min(landscape[:, 1]) for landscape in landscapes] + [0])
             }
         imgs = [self._transform(dgm) for dgm in landscapes]
 
@@ -113,14 +123,30 @@ class PersImage(TransformerMixin):
         # Define an NxN grid over our landscape
         maxBD = self.specs["maxBD"]
         minBD = min(self.specs["minBD"], 0)  # at least show 0, maybe lower
+        
+        maxB = self.specs["maxB"]
+        minB = self.specs["minB"]
+        maxL = self.specs["maxL"]
+        minL = self.specs["minL"] # at least show 0, maybe lower
 
+        if not self.extendend_specs:
         # Same bins in x and y axis
-        dx = maxBD / (self.ny)
-        xs_lower = np.linspace(minBD, maxBD, self.nx)
-        xs_upper = np.linspace(minBD, maxBD, self.nx) + dx
+            dx = maxBD / (self.ny)
+            dy = dx
+            xs_lower = np.linspace(minBD, maxBD, self.nx)
+            xs_upper = np.linspace(minBD, maxBD, self.nx) + dx
 
-        ys_lower = np.linspace(0, maxBD, self.ny)
-        ys_upper = np.linspace(0, maxBD, self.ny) + dx
+            ys_lower = np.linspace(0, maxBD, self.ny)
+            ys_upper = np.linspace(0, maxBD, self.ny) + dy
+
+        else:
+            dx = (maxB - minB)/(self.nx)
+            dy = (maxL - minL)/(self.ny)
+            xs_lower = np.linspace(minB, maxB, self.nx)
+            xs_upper = np.linspace(minB, maxB, self.nx) + dx
+
+            ys_lower = np.linspace(0, maxL, self.ny)
+            ys_upper = np.linspace(0, maxL, self.ny) + dy   
 
         weighting = self.weighting(landscape)
 
@@ -128,13 +154,14 @@ class PersImage(TransformerMixin):
         img = np.zeros((self.nx, self.ny))
 
         # Implement this as a `summed-area table` - it'll be way faster
-        spread = self.spread if self.spread else dx
+        spread_x = self.spread if self.spread else dx
+        spread_y = self.spread if self.spread else dy
         for point in landscape:
-            x_smooth = norm.cdf(xs_upper, point[0], spread) - norm.cdf(
-                xs_lower, point[0], spread
+            x_smooth = norm.cdf(xs_upper, point[0], spread_x) - norm.cdf(
+                xs_lower, point[0], spread_x
             )
-            y_smooth = norm.cdf(ys_upper, point[1], spread) - norm.cdf(
-                ys_lower, point[1], spread
+            y_smooth = norm.cdf(ys_upper, point[1], spread_y) - norm.cdf(
+                ys_lower, point[1], spread_y
             )
             img += np.outer(x_smooth, y_smooth) * weighting(point)
         img = img.T[::-1]
