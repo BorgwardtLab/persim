@@ -169,7 +169,7 @@ class PersImage(TransformerMixin):
 
     def weighting(self, landscape=None):
         """ Define a weighting function, 
-                for stability results to hold, the function must be 0 at y=0.    
+                for stability results to hold, the function must be 0 at y=0.  
         """
 
         # TODO: Implement a logistic function
@@ -184,7 +184,17 @@ class PersImage(TransformerMixin):
         def linear(interval):
             # linear function of y such that f(0) = 0 and f(max(y)) = 1
             d = interval[1]
+            # if d < 1:
+            #     #print('test')
+            #     return 0.01
+            # else:
             return (1 / maxy) * d if landscape is not None else d
+
+        def cubic(interval):
+            
+            d = interval[1]
+
+            return (1 / maxy**3) * d**3
 
         def pw_linear(interval):
             """ This is the function defined as w_b(t) in the original PI paper
