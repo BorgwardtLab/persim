@@ -190,6 +190,12 @@ class PersImage(TransformerMixin):
             # else:
             return (1 / maxy) * d if landscape is not None else d
 
+        def quadratic(interval):
+            
+            d = interval[1]
+
+            return (1 / maxy**2) * d**2
+
         def cubic(interval):
             
             d = interval[1]
@@ -212,7 +218,7 @@ class PersImage(TransformerMixin):
             if b <= t:
                 return 1
 
-        return linear
+        return quadratic
 
     def kernel(self, spread=1):
         """ This will return whatever kind of kernel we want to use.
