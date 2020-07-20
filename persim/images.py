@@ -102,10 +102,10 @@ class PersImage(TransformerMixin):
         
         if not self.specs:
             self.specs = {
-                "maxBD": np.max([np.max(np.vstack((landscape, np.zeros((1, 2)))))
-                                 for landscape in landscapes] + [0]),
-                "minBD": np.min([np.min(np.vstack((landscape, np.zeros((1, 2)))))
-                                 for landscape in landscapes] + [0]),
+                # "maxBD": np.max([np.max(np.vstack((landscape, np.zeros((1, 2)))))
+                #                  for landscape in landscapes] + [0]),
+                # "minBD": np.min([np.min(np.vstack((landscape, np.zeros((1, 2)))))
+                #                  for landscape in landscapes] + [0]),
                 "maxB": np.max([np.max(landscape[:, 0]) for landscape in landscapes] + [0]),
                 "minB": np.min([np.min(landscape[:, 0]) for landscape in landscapes] + [0]),
                 "maxL": np.max([np.max(landscape[:, 1]) for landscape in landscapes] + [0]),
@@ -117,36 +117,39 @@ class PersImage(TransformerMixin):
         if singular:
             imgs = imgs[0]
 
-        return imgs
+            return imgs
 
     def _transform(self, landscape):
         # Define an NxN grid over our landscape
-        maxBD = self.specs["maxBD"]
-        minBD = min(self.specs["minBD"], 0)  # at least show 0, maybe lower
+        # maxBD = self.specs["maxBD"]
+        # minBD = min(self.specs["minBD"], 0)  # at least show 0, maybe lower
         
         maxB = self.specs["maxB"]
         minB = self.specs["minB"]
         maxL = self.specs["maxL"]
         minL = self.specs["minL"] # at least show 0, maybe lower
 
-        if not self.extendend_specs:
-        # Same bins in x and y axis
-            dx = maxBD / (self.ny)
-            dy = dx
-            xs_lower = np.linspace(minBD, maxBD, self.nx)
-            xs_upper = np.linspace(minBD, maxBD, self.nx) + dx
+        maxBD = max(maxB, maxL)
+        minBD = min(minB, minL, 0)
 
-            ys_lower = np.linspace(0, maxBD, self.ny)
-            ys_upper = np.linspace(0, maxBD, self.ny) + dy
+        # if not self.extendend_specs:
+        # # Same bins in x and y axis
+        #     dx = maxBD / (self.ny)
+        #     dy = dx
+        #     xs_lower = np.linspace(minBD, maxBD, self.nx)
+        #     xs_upper = np.linspace(minBD, maxBD, self.nx) + dx
 
-        else:
-            dx = (maxB - minB)/(self.nx)
-            dy = (maxL - minL)/(self.ny)
-            xs_lower = np.linspace(minB, maxB, self.nx)
-            xs_upper = np.linspace(minB, maxB, self.nx) + dx
+        #     ys_lower = np.linspace(0, maxBD, self.ny)
+        #     ys_upper = np.linspace(0, maxBD, self.ny) + dy
 
-            ys_lower = np.linspace(0, maxL, self.ny)
-            ys_upper = np.linspace(0, maxL, self.ny) + dy   
+#        else:                   
+        dx = (maxB - minB)/(self.nx)
+        dy = (maxL - minL)/(self.ny)
+        xs_lower = np.linspace(minB, maxB, self.nx)
+        xs_upper = np.linspace(minB, maxB, self.nx) + dx
+
+        ys_lower = np.linspace(0, maxL, self.ny)
+        ys_upper = np.linspace(0, maxL, self.ny) + dy
 
         weighting = self.weighting(landscape)
 
