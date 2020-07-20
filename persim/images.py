@@ -173,7 +173,6 @@ class PersImage(TransformerMixin):
         """
 
         # TODO: Implement a logistic function
-        # TODO: use self.weighting_type to choose function
 
         if landscape is not None:
             if len(landscape) > 0:
@@ -218,7 +217,7 @@ class PersImage(TransformerMixin):
             if b <= t:
                 return 1
 
-        return quadratic
+        return locals()[self.weighting_type]
 
     def kernel(self, spread=1):
         """ This will return whatever kind of kernel we want to use.
